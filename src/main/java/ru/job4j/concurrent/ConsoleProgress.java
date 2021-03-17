@@ -5,22 +5,23 @@ import java.util.List;
 public class ConsoleProgress implements Runnable {
     @Override
     public void run() {
+        LoadingAnimation animation = new LoadingAnimation();
         while (!Thread.currentThread().isInterrupted()) {
             try {
-                System.out.print(String.format("\r Loading: %s", LoadingAnimation.nextSymbol()));
+                System.out.print(String.format("\r Loading: %s", animation.nextSymbol()));
                 Thread.sleep(500);
             } catch (InterruptedException e) {
                 System.out.println("\r Loading complete");
-                System.exit(1);
+                Thread.currentThread().interrupt();
             }
         }
     }
 
-    private static class LoadingAnimation {
-        private static final List<String> symbols = List.of("-", "\\", "|", "/");
-        private static int currentSymbolIndex = 0;
+    private class LoadingAnimation {
+        private final List<String> symbols = List.of("-", "\\", "|", "/");
+        private int currentSymbolIndex = 0;
 
-        public static String nextSymbol() {
+        public String nextSymbol() {
             if (currentSymbolIndex == symbols.size() - 1) {
                 currentSymbolIndex = 0;
             }
