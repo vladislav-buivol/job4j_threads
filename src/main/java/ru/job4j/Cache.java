@@ -5,7 +5,7 @@ public final class Cache {
 
     public synchronized static Cache instOf() {
         if (cache == null) {
-            return new Cache();
+            cache = new Cache();
         }
         return cache;
     }
