@@ -3,21 +3,17 @@ package ru.job4j.storage;
 import net.jcip.annotations.GuardedBy;
 import net.jcip.annotations.ThreadSafe;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
 
 @ThreadSafe
 public class UserStorage implements Storage<User> {
     @GuardedBy("this")
-    private final List<User> users = new ArrayList<>();
-
-    public UserStorage() {
-    }
+    private final HashMap<Integer, User> users = new HashMap<>();
 
     @Override
     public synchronized boolean add(User user) {
-        if (!users.contains(user)) {
-            users.add(user);
+        if (!users.containsKey(user.getId())) {
+            users.put(user.getId(), user);
             return true;
         }
         return false;
@@ -33,7 +29,7 @@ public class UserStorage implements Storage<User> {
 
     @Override
     public synchronized boolean delete(User user) {
-        return users.remove(user);
+        return users.remove(user.getId(), user);
     }
 
     @Override
@@ -45,11 +41,6 @@ public class UserStorage implements Storage<User> {
     }
 
     public synchronized User findById(int id) {
-        for (User user : users) {
-            if (user.getId() == id) {
-                return user;
-            }
-        }
-        return null;
+        return users.get(id);
     }
 }
