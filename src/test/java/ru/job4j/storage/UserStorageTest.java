@@ -6,8 +6,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 
 public class UserStorageTest {
@@ -48,7 +47,7 @@ public class UserStorageTest {
     }
 
     @Test
-    public void testTransfer() {
+    public void testTransferInMultiplyThreads() {
         UserStorage storage = new UserStorage();
         storage.add(new User(1, 100));
         storage.add(new User(2, 100));
@@ -66,12 +65,53 @@ public class UserStorageTest {
             e.printStackTrace();
         }
         assertThat(storage.findById(1).getAmount() + storage.findById(2).getAmount(), is(200));
-        assertThat(storage.findById(1).getAmount(), is(130));
-        assertThat(storage.findById(2).getAmount(), is(70));
+        assertThat(storage.findById(1).getAmount(), is(70));
+        assertThat(storage.findById(2).getAmount(), is(130));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testNegativeBalanceErrorTransfer() {
+        UserStorage storage = new UserStorage();
+        storage.add(new User(1, 100));
+        storage.add(new User(2, 100));
+        String expectedErrorMessage = "Negative amount";
+        try {
+            storage.transfer(1, 2, -1000);
+        } catch (Exception e) {
+            assertThat(e.getMessage(), is(expectedErrorMessage));
+            throw e;
+        }
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testInsufficientFundsErrorTransfer() {
+        UserStorage storage = new UserStorage();
+        storage.add(new User(1, 100));
+        storage.add(new User(2, 100));
+        String expectedErrorMessage = "Insufficient funds";
+        try {
+            storage.transfer(1, 2, 1000);
+        } catch (Exception e) {
+            assertThat(e.getMessage(), is(expectedErrorMessage));
+            throw e;
+        }
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testUserNotExistErrorTransfer() {
+        UserStorage storage = new UserStorage();
+        storage.add(new User(1, 100));
+        String expectedErrorMessage = "User 2 does not exist";
+        try {
+            storage.transfer(1, 2, 10);
+        } catch (Exception e) {
+            assertThat(e.getMessage(), is(expectedErrorMessage));
+            throw e;
+        }
     }
 
     @Test
-    public void testUpdate() {
+    public void testUpdateInMultiplyThreads() {
         UserStorage storage = new UserStorage();
         storage.add(new User(1, 100));
         ExecutorService es = Executors.newFixedThreadPool(4);
@@ -91,5 +131,31 @@ public class UserStorageTest {
         assertThat(storage.findById(1), is(newUser));
         assertThat(storage.findById(1).getAmount(), is(newUser.getAmount()));
         assertThat(storage.findById(2), is(nullValue()));
+    }
+
+    @Test
+    public void testUpdateAddDelete() {
+        UserStorage storage = new UserStorage();
+        User user = new User(1, 100);
+        User newUser = new User(1, 10);
+        assertThat(storage.update(newUser), is(false));
+        assertThat(storage.delete(newUser), is(false));
+        assertThat(storage.add(user), is(true));
+        assertThat(storage.add(newUser), is(false));
+        assertThat(storage.update(newUser), is(true));
+        assertThat(storage.findById(newUser.getId()), is(newUser));
+        assertThat(storage.delete(newUser), is(true));
+    }
+
+    @Test
+    public void testAddInMultiplyThreads() {
+        UserStorage storage = new UserStorage();
+        User user1 = new User(1, 10);
+        User user2 = new User(1, 20);
+        User user3 = new User(1, 30);
+        new Thread(() -> storage.add(user1)).start();
+        new Thread(() -> storage.add(user2)).start();
+        new Thread(() -> storage.add(user3)).start();
+        assertThat(storage.findById(1), is(user1));
     }
 }
