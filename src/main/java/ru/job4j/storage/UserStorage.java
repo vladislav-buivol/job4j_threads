@@ -27,13 +27,8 @@ public class UserStorage implements Storage<User> {
 
     @Override
     public synchronized void transfer(int fromId, int toId, int amount) {
-        checkIfUserExist(fromId);
-        checkIfUserExist(toId);
-        if (amount < 0) {
-            throw new RuntimeException("Negative amount");
-        }
-        if (findById(fromId).getAmount() < amount) {
-            throw new RuntimeException("Insufficient funds");
+        if (!checkIfUserExist(fromId) || !checkIfUserExist(toId) || amount < 0 || findById(fromId).getAmount() < amount) {
+            return;
         }
         User userFrom = findById(fromId);
         User userTo = findById(toId);
@@ -42,14 +37,11 @@ public class UserStorage implements Storage<User> {
     }
 
     /**
-     * @param id user id
-     *           throw exception if user does not exist
+     * @param id - user id
+     * @return true, if exist else false
      */
-    private void checkIfUserExist(int id) {
-        if (findById(id) != null) {
-            return;
-        }
-        throw new RuntimeException(String.format("User %s does not exist", id));
+    private boolean checkIfUserExist(int id) {
+        return findById(id) != null;
     }
 
     public synchronized User findById(int id) {

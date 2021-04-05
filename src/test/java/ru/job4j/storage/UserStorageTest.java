@@ -69,45 +69,30 @@ public class UserStorageTest {
         assertThat(storage.findById(2).getAmount(), is(130));
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void testNegativeBalanceErrorTransfer() {
         UserStorage storage = new UserStorage();
         storage.add(new User(1, 100));
         storage.add(new User(2, 100));
-        String expectedErrorMessage = "Negative amount";
-        try {
-            storage.transfer(1, 2, -1000);
-        } catch (Exception e) {
-            assertThat(e.getMessage(), is(expectedErrorMessage));
-            throw e;
-        }
+        storage.transfer(1, 2, -1000);
+        assertThat(storage.findById(1).getAmount(), is(100));
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void testInsufficientFundsErrorTransfer() {
         UserStorage storage = new UserStorage();
         storage.add(new User(1, 100));
         storage.add(new User(2, 100));
-        String expectedErrorMessage = "Insufficient funds";
-        try {
-            storage.transfer(1, 2, 1000);
-        } catch (Exception e) {
-            assertThat(e.getMessage(), is(expectedErrorMessage));
-            throw e;
-        }
+        storage.transfer(1, 2, 1000);
+        assertThat(storage.findById(1).getAmount(), is(100));
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void testUserNotExistErrorTransfer() {
         UserStorage storage = new UserStorage();
         storage.add(new User(1, 100));
-        String expectedErrorMessage = "User 2 does not exist";
-        try {
-            storage.transfer(1, 2, 10);
-        } catch (Exception e) {
-            assertThat(e.getMessage(), is(expectedErrorMessage));
-            throw e;
-        }
+        storage.transfer(1, 2, 10);
+        assertThat(storage.findById(1).getAmount(), is(100));
     }
 
     @Test
