@@ -2,19 +2,18 @@ package ru.job4j.synch;
 
 import net.jcip.annotations.GuardedBy;
 import net.jcip.annotations.ThreadSafe;
+import ru.job4j.collection.SimpleArray;
 
-import java.io.*;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
 @ThreadSafe
 public class SingleLockList<T> implements Iterable<T> {
     @GuardedBy("this")
-    private final List<T> list;
+    private final SimpleArray<T> list;
 
     public SingleLockList(List<T> list) {
-        this.list = (List<T>) ((ArrayList<T>) list).clone();
+        this.list = (SimpleArray<T>) copy(list);
     }
 
     public synchronized void add(T value) {
@@ -22,33 +21,17 @@ public class SingleLockList<T> implements Iterable<T> {
     }
 
     public synchronized T get(int index) {
-        return (T) copy(list.get(0));
+        return list.get(index);
     }
 
     @Override
     public synchronized Iterator<T> iterator() {
-        return ((List<T>) copy(this.list)).iterator();
+        return copy(this.list).iterator();
     }
 
-
-    private Object copy(Object object) {
-        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
-             ObjectOutputStream oos = new ObjectOutputStream(bos)) {
-            oos.writeObject(object);
-            oos.flush();
-            byte[] byteData = bos.toByteArray();
-            return readObject(byteData);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private Object readObject(byte[] byteData) {
-        try (ByteArrayInputStream bais = new ByteArrayInputStream(byteData)) {
-            return new ObjectInputStream(bais).readObject();
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
+    private Iterable<T> copy(Iterable<T> originalList) {
+        SimpleArray<T> copy = new SimpleArray<>();
+        originalList.forEach(copy::add);
+        return copy;
     }
 }
