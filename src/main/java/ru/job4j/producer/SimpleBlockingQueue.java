@@ -8,13 +8,17 @@ import java.util.Queue;
 
 @ThreadSafe
 public class SimpleBlockingQueue<T> {
-    private final int maxSize = 5;
+    private final int maxSize;
 
     @GuardedBy("this")
     private final Queue<T> queue = new LinkedList<>();
 
+    public SimpleBlockingQueue(int maxSize) {
+        this.maxSize = maxSize;
+    }
+
     public synchronized void offer(T value) {
-        while (queue.size() >= 5) {
+        while (queue.size() >= maxSize) {
             try {
                 this.wait();
             } catch (InterruptedException e) {

@@ -2,7 +2,6 @@ package ru.job4j.producer;
 
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.core.Is.is;
@@ -14,13 +13,9 @@ public class SimpleBlockingQueueTest {
     @Test
     public void offerWhenFree() throws InterruptedException {
         AtomicInteger i = new AtomicInteger();
-        SimpleBlockingQueue<Integer> queue = new SimpleBlockingQueue<>();
-        Thread producer = new Thread(() -> {
-            queue.offer(1);
-        });
-        Thread consumer = new Thread(() -> {
-            i.set(queue.poll());
-        });
+        SimpleBlockingQueue<Integer> queue = new SimpleBlockingQueue<>(5);
+        Thread producer = new Thread(() -> queue.offer(1));
+        Thread consumer = new Thread(() -> i.set(queue.poll()));
 
         producer.start();
         assertThat(i.get(), is(0));
@@ -32,13 +27,12 @@ public class SimpleBlockingQueueTest {
 
     @Test
     public void offerWhenFull() throws InterruptedException {
-        SimpleBlockingQueue<Integer> queue = new SimpleBlockingQueue<>();
-        for (int i = 0; i < 5; i++) {
+        int size = 5;
+        SimpleBlockingQueue<Integer> queue = new SimpleBlockingQueue<>(size);
+        for (int i = 0; i < size; i++) {
             queue.offer(i);
         }
-        Thread producer = new Thread(() -> {
-            queue.offer(1);
-        });
+        Thread producer = new Thread(() -> queue.offer(1));
 
         Thread consumer = new Thread(() -> {
             queue.poll();
@@ -46,32 +40,30 @@ public class SimpleBlockingQueueTest {
         });
 
         producer.start();
-        assertThat(queue.size(),is(5));
         consumer.start();
         consumer.join();
-        assertThat(queue.size(),is(4));
         producer.join();
+        assertThat(queue.size(), is(4));
     }
 
     @Test
     public void pullWhenEmpty() throws InterruptedException {
-        SimpleBlockingQueue<Integer> queue = new SimpleBlockingQueue<>();
-        ArrayList<Integer> ls = new ArrayList<>();
+        SimpleBlockingQueue<Integer> queue = new SimpleBlockingQueue<>(5);
         Thread producer = new Thread(() -> {
             queue.offer(1);
-            });
+            queue.offer(1);
+        });
 
         Thread consumer = new Thread(() -> {
-            ls.add(queue.poll());
-            ls.add(queue.poll());
+            queue.poll();
+            queue.poll();
         });
 
         consumer.start();
         producer.start();
+        consumer.join();
         producer.join();
         assertThat(queue.size(), is(0));
-        queue.offer(1);
-        consumer.join();
     }
 
 }
