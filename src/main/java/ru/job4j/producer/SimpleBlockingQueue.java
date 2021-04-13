@@ -17,24 +17,26 @@ public class SimpleBlockingQueue<T> {
         this.maxSize = maxSize;
     }
 
-    public synchronized void offer(T value) {
+    public synchronized void offer(T value) throws InterruptedException {
         while (queue.size() >= maxSize) {
             try {
                 this.wait();
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                Thread.currentThread().interrupt();
+                throw e;
             }
         }
         queue.add(value);
         this.notifyAll();
     }
 
-    public synchronized T poll() {
+    public synchronized T poll() throws InterruptedException {
         while (queue.isEmpty()) {
             try {
                 this.wait();
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                Thread.currentThread().interrupt();
+                throw e;
             }
         }
         T t = queue.poll();
@@ -42,7 +44,7 @@ public class SimpleBlockingQueue<T> {
         return t;
     }
 
-    public synchronized int size(){
+    public synchronized int size() {
         return queue.size();
     }
 
