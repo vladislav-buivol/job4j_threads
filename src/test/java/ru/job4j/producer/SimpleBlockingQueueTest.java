@@ -2,7 +2,8 @@ package ru.job4j.producer;
 
 import org.junit.Test;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.ArrayList;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -11,30 +12,84 @@ import static org.junit.Assert.assertThat;
 public class SimpleBlockingQueueTest {
 
     @Test
-    public void offerWhenFree() throws InterruptedException {
-        AtomicInteger i = new AtomicInteger();
-        SimpleBlockingQueue<Integer> queue = new SimpleBlockingQueue<>(5);
-        Thread producer = new Thread(() -> {
-            try {
-                queue.offer(1);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        });
-        Thread consumer = new Thread(() -> {
-            try {
-                i.set(queue.poll());
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        });
-
+    public void offer() throws InterruptedException {
+        int nrOfElements = 5000;
+        final CopyOnWriteArrayList<Integer> buffer = new CopyOnWriteArrayList<>();
+        final SimpleBlockingQueue<Integer> queue = new SimpleBlockingQueue<>(nrOfElements);
+        Thread producer = new Thread(
+                () -> {
+                    for (int i = 0; i < nrOfElements; i++) {
+                        try {
+                            queue.offer(i);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+                }
+        );
         producer.start();
-        assertThat(i.get(), is(0));
+        Thread consumer = new Thread(
+                () -> {
+                    while (!queue.isEmpty() || !Thread.currentThread().isInterrupted()) {
+                        try {
+                            buffer.add(queue.poll());
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+                }
+        );
         consumer.start();
         producer.join();
+        consumer.interrupt();
         consumer.join();
-        assertThat(i.get(), is(1));
+        ArrayList<Integer> ls = new ArrayList<>();
+        for (int i = 0; i < nrOfElements; i++) {
+            ls.add(i);
+        }
+        assertThat(buffer, is(ls));
+    }
+
+    @Test
+    public void startPollWhenQueryIsEmpty() throws InterruptedException {
+        int nrOfElements = 1000;
+        SimpleBlockingQueue<Integer> queue = new SimpleBlockingQueue<>(nrOfElements);
+        CopyOnWriteArrayList<Integer> buffer = new CopyOnWriteArrayList<>();
+        Thread consumer = new Thread(
+                () -> {
+                    while (!queue.isEmpty() || !Thread.currentThread().isInterrupted()) {
+                        try {
+                            buffer.add(queue.poll());
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+                }
+        );
+        Thread producer = new Thread(
+                () -> {
+                    for (int i = 0; i < nrOfElements; i++) {
+                        try {
+                            queue.offer(i);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+                    consumer.interrupt();
+                });
+        consumer.start();
+        producer.start();
+        producer.join();
+        consumer.join();
+        ArrayList<Integer> ls = new ArrayList<>();
+        for (int i = 0; i < nrOfElements; i++) {
+            ls.add(i);
+        }
+        assertThat(buffer, is(ls));
     }
 
     @Test
@@ -49,6 +104,7 @@ public class SimpleBlockingQueueTest {
                 queue.offer(1);
             } catch (InterruptedException e) {
                 e.printStackTrace();
+                Thread.currentThread().interrupt();
             }
         });
 
